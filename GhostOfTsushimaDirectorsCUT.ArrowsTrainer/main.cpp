@@ -2,24 +2,12 @@
 #include <Windows.h>
 #include <TlHelp32.h>
 #include <iostream>
+#include <future>
 
 
-/*	Long bow address
-
-	explosion arrows 0x2BA7BCF4390
-	heavy arrows 0x7FF6885FA060
-*/
-
-
-/*	Short bow address
-
-	short arrows 0x7FF6885FA058
-	fire arrows 0x7FF6885FA05C
-
-
-*/
-
-
+void* shortArrowsAddress = (void*)0x7FF689F8A058;
+void* fireArrowsAddress = (void*)0x7FF689F8A05C;
+void* heavyArrowsAddress = (void*)0x7FF689F8A060;
 
 
 DWORD GetPidByName() {
@@ -43,106 +31,16 @@ DWORD GetPidByName() {
 
 }
 
-
-
-int handlerShortArrowsBow(HANDLE processHandler) {
-	const int MAX_ARROWS = 20;
-	void *address = (void*)0x7ff6885fa058;
-
+int reloadArrows(void* address, HANDLE processHandler) {
+	int maxArrows = 20;
 	int data = 0;
-
 	int resultReader = ReadProcessMemory(processHandler, address, &data, sizeof(data), nullptr);
 	if (resultReader == 0) {
 		std::cout << "Cannot read process memory";
 		return 0;
 	}
 
-	std::cout << "Current arrows: " << data << "\n";
-
-	if (data == 0) {
-		WriteProcessMemory(processHandler, address, &MAX_ARROWS, sizeof(MAX_ARROWS), nullptr);
-	}
-	else
-	{
-		int numberOfArrows = MAX_ARROWS - data;
-		WriteProcessMemory(processHandler, address, &numberOfArrows, sizeof(numberOfArrows), nullptr);
-	}
-	return 1;
-}
-
-int handlerFireArrowsBow(HANDLE processHandler) {
-	const int MAX_ARROWS = 20;
-	void* address = (void*)0x7FF6885FA05C;
-
-	int data = 0;
-
-	int resultReader = ReadProcessMemory(processHandler, address, &data, sizeof(data), nullptr);
-	if (resultReader == 0) {
-		std::cout << "Cannot read process memory";
-		return 0;
-	}
-
-	std::cout << "Current arrows: " << data << "\n";
-
-	if (data == 0) {
-		WriteProcessMemory(processHandler, address, &MAX_ARROWS, sizeof(MAX_ARROWS), nullptr);
-	}
-	else
-	{
-		int numberOfArrows = MAX_ARROWS - data;
-		WriteProcessMemory(processHandler, address, &numberOfArrows, sizeof(numberOfArrows), nullptr);
-	}
-	return 1;
-}
-
-
-int handlerHeavyArrowsBow(HANDLE processHandler) {
-	const int MAX_ARROWS = 20;
-	void* address = (void*)0x7FF6885FA060;
-
-	int data = 0;
-
-	int resultReader = ReadProcessMemory(processHandler, address, &data, sizeof(data), nullptr);
-	if (resultReader == 0) {
-		std::cout << "Cannot read process memory";
-		return 0;
-	}
-
-	std::cout << "Current arrows: " << data << "\n";
-
-	if (data == 0) {
-		WriteProcessMemory(processHandler, address, &MAX_ARROWS, sizeof(MAX_ARROWS), nullptr);
-	}
-	else
-	{
-		int numberOfArrows = MAX_ARROWS - data;
-		WriteProcessMemory(processHandler, address, &numberOfArrows, sizeof(numberOfArrows), nullptr);
-	}
-	return 1;
-}
-
-int handlerExplosionArrowsBow(HANDLE processHandler) {
-	const int MAX_ARROWS = 20;
-	void* address = (void*)0x2BA7BCF4390;
-
-	int data = 0;
-
-	int resultReader = ReadProcessMemory(processHandler, address, &data, sizeof(data), nullptr);
-	if (resultReader == 0) {
-		std::cout << "Cannot read process memory";
-		return 0;
-	}
-
-	std::cout << "Current arrows: " << data << "\n";
-
-	if (data == 0) {
-		WriteProcessMemory(processHandler, address, &MAX_ARROWS, sizeof(MAX_ARROWS), nullptr);
-	}
-	else
-	{
-		int numberOfArrows = MAX_ARROWS - data;
-		WriteProcessMemory(processHandler, address, &numberOfArrows, sizeof(numberOfArrows), nullptr);
-	}
+	WriteProcessMemory(processHandler, address, &maxArrows, sizeof(maxArrows), nullptr);
 	return 1;
 }
 
@@ -164,26 +62,19 @@ int main() {
 		return 0;
 	}
 
-	std::cout << "What do you want?\n\n";
-	std::cout << "Type 1 to reload short arrows\n";
-	std::cout << "Type 2 to reload fire arrows\n";
-	std::cout << "Type 3 to reload heavy arrows\n";
-	std::cout << "Type 4 to reload explosion arrows\n";
+	while (true)
+	{
+		//CTRL-L + R
+		if (GetAsyncKeyState(VK_LCONTROL) && GetAsyncKeyState(0x52)) {
+			std::async(&reloadArrows, shortArrowsAddress, handleToProcess);
+			std::async(&reloadArrows, fireArrowsAddress, handleToProcess);
+		}
 
-	int option = 0;
-	std::cin >> option;
-
-	switch (option) {
-	case 1:
-		handlerShortArrowsBow(handleToProcess);
-	case 2:
-		handlerFireArrowsBow(handleToProcess);
-	case 3:
-		handlerHeavyArrowsBow(handleToProcess);
-	case 4:
-		handlerExplosionArrowsBow(handleToProcess);
-	default:
-		break;
+		//CTRL-L + T
+		if (GetAsyncKeyState(VK_LCONTROL) && GetAsyncKeyState(0x54)) {
+			std::async(&reloadArrows, heavyArrowsAddress, handleToProcess);
+		}
+	
 	}
 	return 1;
 }
